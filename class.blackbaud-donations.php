@@ -2,7 +2,7 @@
 
 class Blackbaud_donations {
 
-    private static $debug = true;
+    private static $debug = false;
     private static $initiated = false;
     private static $funds = null;
     private static $donationCookieName = 'donationCartId';
@@ -35,9 +35,9 @@ class Blackbaud_donations {
      * Subtract quantity from a specific fund in a users cart
      */
     public static function change_quantity() {
-        $id = $_POST['id'];
+        $id = intval($_POST['id']);
         $operation = ($_POST['operation'] === 'add') ? 'add' : 'subtract';
-        $quantity = (isset($_POST['quantity']) && is_numeric($_POST['quantity'])) ? $_POST['quantity'] : 1;
+        $quantity = (isset($_POST['quantity']) && is_numeric($_POST['quantity'])) ? intval($_POST['quantity']) : 1;
 
         if(empty($id) || empty($quantity) ) {
             return;
@@ -75,10 +75,10 @@ class Blackbaud_donations {
      * Add a donation to the users cart
      */
     public static function add_donation_to_user_cart() {
-        $id = $_POST['id'];
-        $type = (isset($_POST['type'])) ? $_POST['type'] : 'single';
-        $amount = ($_POST['amount'] == 'other') ? $_POST['otherAmount'] : $_POST['amount'];
-        $quantity = (isset($_POST['quantity']) && is_numeric($_POST['quantity'])) ? $_POST['quantity'] : 1;
+        $id = sanitize_text_field($_POST['id']);
+        $type = (isset($_POST['type']) && in_array($_POST['type'], ['single', 'recurring'])) ? $_POST['type'] : 'single';
+        $amount = ($_POST['amount'] == 'other') ? sanitize_text_field($_POST['otherAmount']) : sanitize_text_field($_POST['amount']);
+        $quantity = (isset($_POST['quantity']) && is_numeric($_POST['quantity'])) ? intval($_POST['quantity']) : 1;
         $is_quick_appeal_item = (isset($_POST['is_quick_appeal_item'])) ? 1 : 0;
 
         if(empty($id) || empty($type) || empty($amount)  || empty($quantity) ) {
@@ -104,7 +104,7 @@ class Blackbaud_donations {
      * Remove a donation from the users cart
      */
     public static function remove_donation_from_user_cart() {
-        self::remove_donation($_POST['id']);
+        self::remove_donation(sanitize_text_field($_POST['id']));
 
         ob_start();
         require_once BLACKBAUD_DONATIONS__PLUGIN_DIR . '/templates/quick_donate_sidebar.php';
@@ -236,7 +236,7 @@ class Blackbaud_donations {
 
         $table_name = self::get_donations_tablename();
 
-        $donations = $wpdb->get_row("SELECT id FROM $table_name WHERE cart_id = '$cart_id' AND status = 'pending' LIMIT 0,1");
+        $donations = $wpdb->get_row($wpdb->prepare("SELECT id FROM $table_name WHERE cart_id = %s AND status = 'pending' LIMIT 0,1", $cart_id));
 
         if ( ! isset($donations->id) || ! $donations->id ) {
             $wpdb->insert($table_name, [
@@ -259,7 +259,7 @@ class Blackbaud_donations {
 
         $table_name = self::get_donations_tablename();
 
-        $donations = $wpdb->get_row("SELECT id FROM $table_name WHERE cart_id = '$cart_id' AND status = 'pending' LIMIT 0,1");
+        $donations = $wpdb->get_row($wpdb->prepare("SELECT id FROM $table_name WHERE cart_id = %s AND status = 'pending' LIMIT 0,1", $cart_id));
 
         if (isset($donations->id) && $donations->id > 0) {
             $wpdb->update($table_name, ['status' => 'completed'], ['id' => $donations->id]);
@@ -285,7 +285,7 @@ class Blackbaud_donations {
 
         $table_name = self::get_donations_items_tablename();
 
-        $donations = $wpdb->get_row("SELECT id FROM $table_name WHERE donation_id = '$donation_id' AND fund_id = '$id' LIMIT 0,1");
+        $donations = $wpdb->get_row($wpdb->prepare("SELECT id FROM $table_name WHERE donation_id = %s AND fund_id = %s LIMIT 0,1", $donation_id, $id));
 
         if ( ! isset($donations->id) || ! $donations->id) {
             return false;
@@ -316,7 +316,7 @@ class Blackbaud_donations {
 
         $table_name = self::get_donations_items_tablename();
 
-        $donations = $wpdb->get_row("SELECT id FROM $table_name WHERE donation_id = '$donation_id' AND fund_id = '$id' LIMIT 0,1");
+        $donations = $wpdb->get_row($wpdb->prepare("SELECT id FROM $table_name WHERE donation_id = %s AND fund_id = %s LIMIT 0,1", $donation_id, $id));
 
         $fund = self::get_appeal_donation_fund($id);
 
@@ -374,7 +374,8 @@ class Blackbaud_donations {
         $donations_items_tablename = self::get_donations_items_tablename();
         $donation_id = self::get_donation_id(self::get_cart_id(false));
 
-        $results = $wpdb->get_results("SELECT * FROM $donations_items_tablename WHERE donation_id = '$donation_id'");
+        $results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $donations_items_tablename WHERE donation_id = %s", $donation_id));
+
         $donations = [];
 
         if (is_array($results)) {
@@ -400,7 +401,7 @@ class Blackbaud_donations {
 
         $table_name = self::get_donations_items_tablename();
 
-        $donation = $wpdb->get_row("SELECT * FROM $table_name WHERE donation_id = '$donation_id' AND fund_id = '$fund_id' LIMIT 0,1");
+        $donation = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE donation_id = %s AND fund_id = %s LIMIT 0,1", $donation_id, $fund_id));
 
         return $donation;
     }
@@ -487,38 +488,27 @@ class Blackbaud_donations {
      */
     public static function complete_checkout_transaction()
     {
-        $amount = number_format(str_replace(',', '', $_POST['amount']), 2, '.', '');
-        $auth_token = $_POST['authorization_token'];
-        $title = $_POST['title'];
-        $firstname = $_POST['firstname'];
-        $lastname = $_POST['lastname'];
-        $email = $_POST['email'];
-        $phone = $_POST['phone'];
-        $address = $_POST['address'];
-        $city = $_POST['city'];
-        $postcode = $_POST['postcode'];
-        $country = $_POST['country'];
+        $amount = number_format(str_replace(',', '', sanitize_text_field($_POST['amount'])), 2, '.', '');
+        $auth_token = sanitize_text_field($_POST['authorization_token']);
+        $title = sanitize_text_field($_POST['title']);
+        $firstname = sanitize_text_field($_POST['firstname']);
+        $lastname = sanitize_text_field($_POST['lastname']);
+        $email = sanitize_email($_POST['email']);
+        $phone = sanitize_text_field($_POST['phone']);
+        $address = sanitize_text_field($_POST['address']);
+        $city = sanitize_text_field($_POST['city']);
+        $postcode = sanitize_text_field($_POST['postcode']);
+        $country = sanitize_text_field($_POST['country']);
         $email_marketing_optin = (isset($_POST['email_marketing_optin'])) ? (bool)$_POST['email_marketing_optin'] : false;
         $phone_marketing_optin = (isset($_POST['phone_marketing_optin'])) ? (bool)$_POST['phone_marketing_optin'] : false;
         $address_marketing_optin = (isset($_POST['address_marketing_optin'])) ? (bool)$_POST['address_marketing_optin'] : false;
         $giftaid = (isset($_POST['giftaid']) && $_POST['giftaid']) ? true : false;
-        $note = (isset($_POST['note']) && trim($_POST['note']) != '') ? $_POST['note'] : null;
-
-//        $errors = [];
-//        if ( trim($email) == '' || ! is_email($email) ) {
-//            $errors[] = 'You have entered an invalid email address';
-//        }
-//
-//
-//        if (count($errors)) {
-//            echo json_encode(['errors' => implode('<br>', $errors)]);
-//            exit;
-//        }
+        $note = (isset($_POST['note']) && trim($_POST['note']) != '') ? sanitize_text_field($_POST['note']) : null;
 
         $body = [
             'amount' => str_replace('.', '', $amount),
             'authorization_token' => $auth_token,
-            'application_fee' => $_POST['application_fee'],
+            'application_fee' => sanitize_text_field($_POST['application_fee']),
         ];
 
         self::debug('Calling complete transaction method', $body);
@@ -570,7 +560,7 @@ class Blackbaud_donations {
         if(!empty($note)) {
             $display_note = '<h3>Note...</h3>
         <p>
-            <i>'.$note.'</i>
+            <i>'.esc_html($note).'</i>
         </p>';
         }
 
@@ -592,7 +582,7 @@ class Blackbaud_donations {
         $message_html = '
     <div style="text-align: center; margin: 20px auto; width: 600px;">
         <div style=" font-family: sans-serif; font-weight: 300; max-width: 600px; line-height: 140%; text-align: left;">
-            <p>Dear '.$firstname.'</p>
+            <p>Dear '.esc_html($firstname).'</p>
             <p>Thank you for your kind donation. This is to confirm we have received your payment of &pound;'.$amount.'</p>
             <p>A summary of the donation is listed below for your reference</p>
             <div class="email-holder__">
@@ -601,10 +591,10 @@ class Blackbaud_donations {
                 <p>Date: '.$date .' / '.$time.'</p>
                 <h3>Donation Summary...</h3>
                 <p>
-                    '.$firstname.' '.$lastname.'<br />
-                    '.$address.'<br />
-                    '.$city.' '.$postcode.'<br />
-                    '.$country.'
+                    '.esc_html($firstname).' '.esc_html($lastname).'<br />
+                    '.esc_html($address).'<br />
+                    '.esc_html($city).' '.esc_html($postcode).'<br />
+                    '.esc_html($country).'
                 </p>
                 '.$display_note.'
                 <h3>Funds you donated to...</h3>
@@ -908,14 +898,11 @@ class Blackbaud_donations {
      */
     private static function create_giftaid_declaration($constituent_id, $giftaid)
     {
-        if( ! $giftaid ) {
-            return false;
-        }
-
         $body = [
             'constituent_id' => $constituent_id,
-            'constituent_pays_tax' => 'Yes',
+            'constituent_pays_tax' => ($giftaid) ? 'Yes' : 'No',
             'declaration_starts' => date('Y-m-d') . 'T00:00:00Z',
+            'declaration_ends' => date('Y-m-d', strtotime('1 day')) . 'T00:00:00Z',
         ];
 
         self::debug('Creating gift aid tax declaration', $body);

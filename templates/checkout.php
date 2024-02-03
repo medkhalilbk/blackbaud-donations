@@ -206,7 +206,7 @@ if ($donations_cart_total > 0): ?>
                     <label for="country" class="form-label">Country <span class="et-checkout__form--required">(Required)</span></label>
                     <select id="country" name="country" class="form-select" required >
                     <option value="">Select country</option>
-                    <option value="">United Kingdom</option>
+                    <option value="UK">United Kingdom</option>
                     <?php foreach($countries[0]->value as $country): ?>
                     <option value="<?=$country->abbreviation?>"><?=$country->name?></option>
                     <?php endforeach; ?>
@@ -248,8 +248,12 @@ if ($donations_cart_total > 0): ?>
                     <p> <a href="https://www.gov.uk/donating-to-charity/gift-aid" target="_blank">Find out more about Gift Aid.</a></p>
                     </div>
                     <div>
-                    <input class="form-check-input" type="checkbox" id="giftaid" name="giftaid" value="1">
+                    <input class="form-check-input" type="radio" id="giftaid" name="giftaid" value="1">
                     <label class="form-check-label" for="giftaid" > Yes, please add my Gift Aid. </label>
+                    <input class="form-check-input" type="radio" id="giftaid" name="giftaid" value="0">
+                    <label class="form-check-label" for="giftaid" > No, I'm not a UK taxpayer, or I do not wish for the charity to claim Gift
+Aid on my behalf. I understand this declaration will apply to this gift and
+all future gifts until I notify the charity of a change. </label>
                     </div>
                 </div>
                 </div>
@@ -306,7 +310,7 @@ if ($donations_cart_total > 0): ?>
             
             $('#checkout-errors').html("");
             let form_error = 0;
-
+            
             // Fetch all the forms we want to apply custom Bootstrap validation styles to
             let forms = document.querySelectorAll('.needs-validation')
             // Loop over them and prevent submission

@@ -16,6 +16,17 @@ class Giftaid
         self::$baseUri = SKY_API_BASE_URI . 'nxt-data-integration/v1/';
     }
 
+    public static function getTaxDeclarationsForConstituent($constituent_id)
+    {
+        $url = self::$baseUri . "re/giftaid/constituents/$constituent_id/taxdeclarations";
+        $headers = self::$headers;
+        $headers[] = 'Content-type: application/json';
+
+        $response = Http::get($url, $headers, true);
+
+        return json_decode($response, true);
+    }
+
     public static function createTaxDeclaration($body)
     {
         $url = self::$baseUri . 're/giftaid/taxdeclarations';

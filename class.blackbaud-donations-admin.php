@@ -76,7 +76,7 @@ class Blackbaud_donations_admin {
         <h2>Blackbaud Donations</h2>
         <?php
         if (isset( $_GET['view'], $_GET['code'] ) && $_GET['view'] == 'callback') {
-            $settings = json_decode(Blackbaud\Auth::exchangeCodeForAccessToken($_GET['code']), true);
+            $settings = json_decode(Blackbaud\Auth::exchangeCodeForAccessToken(sanitize_text_field($_GET['code'])), true);
             include BLACKBAUD_DONATIONS__PLUGIN_DIR . 'views/finished_setup.php';
         } elseif (isset( $_GET['view']) && $_GET['view'] == 'deauthorise') {
             \blackbaud\Api_auth::logout();
