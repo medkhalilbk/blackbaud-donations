@@ -247,14 +247,17 @@ if ($donations_cart_total > 0): ?>
                     </p>
                     <p> <a href="https://www.gov.uk/donating-to-charity/gift-aid" target="_blank">Find out more about Gift Aid.</a></p>
                     </div>
-                    <div>
-                    <input class="form-check-input" type="radio" id="giftaid" name="giftaid" value="1">
-                    <label class="form-check-label" for="giftaid" > Yes, please add my Gift Aid. </label>
-                    <input class="form-check-input" type="radio" id="giftaid" name="giftaid" value="0">
-                    <label class="form-check-label" for="giftaid" > No, I'm not a UK taxpayer, or I do not wish for the charity to claim Gift
-Aid on my behalf. I understand this declaration will apply to this gift and
-all future gifts until I notify the charity of a change. </label>
-                    </div>
+                    <div class="form-group">
+    <div class="form-check">
+        <input class="form-check-input" type="radio" id="giftaidYes" name="giftaid" value="1">
+        <label class="form-check-label" for="giftaidYes">Yes, please add my Gift Aid.</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" id="giftaidNo" name="giftaid" value="0">
+        <label class="form-check-label" for="giftaidNo">No, I'm not a UK taxpayer, or I do not wish for the charity to claim Gift Aid on my behalf. I understand this declaration will apply to this gift and all future gifts until I notify the charity of a change.</label>
+    </div>
+</div>
+
                 </div>
                 </div>
 
@@ -340,7 +343,7 @@ all future gifts until I notify the charity of a change. </label>
                 return;   
             }
             $(".et-checkout-progress__step--one").addClass("et-checkout-progress__step--done");
-            var giftaid = document.getElementById('giftaid').value;
+            var giftaid = get_giftaid_optin()
 
             // console.log($('#donate-now').attr('data-amount-formatted'));
 
@@ -428,9 +431,14 @@ all future gifts until I notify the charity of a change. </label>
     function get_address_marketing_optin() {
         return $('#address-marketing-optin').is(':checked') ? '1' : '0';
     }
-
     function get_giftaid_optin() {
-        return $('#giftaid').is(':checked') ? '1' : '0';
+        var selectedValue = document.querySelector('input[name="giftaid"]:checked');
+        // it can be null so i added this condition         
+        if(selectedValue) {
+                   return `'`+selectedValue.value.toString()+`'`
+                }else{
+                    return '0'
+                } 
     }
 
     function showClear() {
